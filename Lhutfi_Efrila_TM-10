@@ -1,0 +1,54 @@
+import tkinter as tk
+from tkinter import messagebox
+import psutil  # New import for process management
+
+# Fungsi untuk memuat proses dari sistem
+def load_processes():
+    processes = []
+    for proc in psutil.process_iter(['pid', 'name', 'status']):
+        processes.append({"pid": proc.info['pid'], "name": proc.info['name'], "status": proc.info['status']})
+    return processes
+
+# Fungsi untuk memperbarui daftar proses di antarmuka
+def update_process_list():
+    global processes  # Use the global processes variable
+    processes = load_processes()  # Reload processes
+    process_listbox.delete(0, tk.END)
+    for process in processes:
+        process_listbox.insert(tk.END, f"PID: {process['pid']} - Name: {process['name']} - Status: {process['status']}")
+    app.after(1000, update_process_list)  # Schedule the next update in 1 second
+
+# Fungsi untuk menghapus proses (hanya jika diperlukan, gunakan dengan hati-hati)
+def kill_process():
+    selected = process_listbox.curselection()
+    if selected:
+        pid = processes[selected[0]]['pid']
+        try:
+            psutil.Process(pid).terminate()  # Terminate the process
+            messagebox.showinfo("Proses Dihentikan", f"Proses dengan PID {pid} berhasil dihentikan!")
+            update_process_list()  # Refresh the list
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menghentikan proses: {e}")
+    else:
+        messagebox.showwarning("Peringatan", "Pilih proses terlebih dahulu!")
+
+# Inisialisasi Tkinter
+app = tk.Tk()
+app.title("Task Manager Desktop")
+app.geometry("600x400")
+
+# Elemen GUI
+process_listbox = tk.Listbox(app, height=15, width=80)
+process_listbox.pack(pady=10)
+
+btn_frame = tk.Frame(app)
+btn_frame.pack(pady=10)
+
+btn_kill = tk.Button(btn_frame, text="Hentikan Proses", command=kill_process)
+btn_kill.grid(row=0, column=0, padx=5)
+
+# Muat proses pertama kali
+update_process_list()  # Start the real-time update
+
+# Jalankan aplikasi
+app.mainloop()
